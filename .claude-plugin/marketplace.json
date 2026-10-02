@@ -1,0 +1,12 @@
+{
+  "name": "review-threads",
+  "description": "Ben Walzer's review-threads plugin for Claude Code.",
+  "owner": { "name": "Ben Walzer", "url": "https://github.com/BWalzer" },
+  "plugins": [
+    {
+      "name": "review-threads",
+      "source": "./",
+      "description": "Review Claude's work like a pull request: comment on lines in Neovim, Claude answers in the thread and acts on it."
+    }
+  ]
+}

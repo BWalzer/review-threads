@@ -1,0 +1,9 @@
+{
+  "name": "review-threads",
+  "version": "0.1.0",
+  "description": "Review Claude's work like a pull request: comment on lines in Neovim, Claude answers in the thread and acts on it.",
+  "author": { "name": "Ben Walzer", "url": "https://github.com/BWalzer" },
+  "repository": "https://github.com/BWalzer/review-threads",
+  "license": "MIT",
+  "keywords": ["review", "neovim", "tmux", "code-review"]
+}

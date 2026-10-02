@@ -1,0 +1,6 @@
+#!/bin/sh
+# review: the review threads from a shell, for Claude (lua/review/cli.lua).
+#   review show | review reply <id> <<'EOF' ... | review watch
+# On Claude's PATH while the plugin is enabled. Needs Neovim 0.10+.
+root=$(cd "$(dirname "$0")/.." && pwd)
+exec nvim --clean -l "$root/lua/review/cli.lua" "$@"

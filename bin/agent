@@ -1,0 +1,38 @@
+#!/bin/sh
+# agent [dir]: one tmux session laid out for agentic coding.
+#
+#   +-------------------+---------------+
+#   | nvim              | claude        |
+#   +-------------------+---------------+
+#   | shell                             |
+#   +-----------------------------------+
+#
+# The session is named after the repo root (or the directory) and reattached
+# when it already exists, so `agent` is also the way back in after closing the
+# terminal. Panes run inside your shell: quitting nvim or claude leaves a shell.
+# Put it on your PATH with /review-threads:install-agent.
+set -eu
+dir=$(cd "${1:-.}" && pwd -P)
+root=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null || echo "$dir")
+# tmux session names may not contain . or :
+name=$(printf '%s' "$(basename "$root")" | tr -c 'A-Za-z0-9_-' '_')
+
+if ! tmux has-session -t "=$name" 2>/dev/null; then
+  code=$(tmux new-session -d -P -F '#{pane_id}' -s "$name" -n agent -c "$root")
+  claude=$(tmux split-window -h -P -F '#{pane_id}' -t "$code" -l 45% -c "$root")
+  tmux split-window -v -f -t "$code" -l 25% -c "$root"
+  # Clicks reach nvim's thread buttons; focus events let nvim reload files
+  # Claude changed; a short escape time keeps nvim's Esc snappy.
+  tmux set-option -t "$name" mouse on
+  tmux set-option -s focus-events on
+  tmux set-option -s escape-time 10
+  tmux send-keys -t "$code" 'nvim .' Enter
+  tmux send-keys -t "$claude" 'claude' Enter
+  tmux select-pane -t "$code"
+fi
+
+if [ -n "${TMUX:-}" ]; then
+  exec tmux switch-client -t "=$name"
+else
+  exec tmux attach-session -t "=$name"
+fi

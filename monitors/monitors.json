@@ -1,0 +1,7 @@
+[
+  {
+    "name": "review-watch",
+    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/bin/review watch",
+    "description": "New review comments from Ben in nvim"
+  }
+]
