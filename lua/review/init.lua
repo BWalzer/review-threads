@@ -151,10 +151,46 @@ function M.render(buf)
   end
 end
 
+local LIST = 'Review threads'
+
+--- The open threads of `repo` as quickfix items, outdated ones at line 1.
+local function list_items(repo)
+  local items = {}
+  for _, thread in ipairs(store.load(repo).threads) do
+    if not thread.resolved then
+      local at = store.place(repo, thread)
+      local last = thread.comments[#thread.comments]
+      table.insert(items, {
+        filename = repo.root .. '/' .. thread.path,
+        lnum = at.line or 1,
+        text = ('%s%s %s: %s'):format(thread.id, at.line and '' or ' [outdated]', last.author, last.text),
+      })
+    end
+  end
+  return items
+end
+
+--- Keeps the thread list, when it is the quickfix list, in step with its
+--- repository's threads; closes it once none is open.
+local function refresh_list()
+  local qf = vim.fn.getqflist({ title = 0, context = 0, winid = 0 })
+  local repo = qf.title == LIST and type(qf.context) == 'table' and store.repo(qf.context.root)
+  if not repo then
+    return
+  end
+  local items = list_items(repo)
+  vim.fn.setqflist({}, 'r', { items = items })
+  if #items == 0 and qf.winid ~= 0 then
+    vim.cmd('cclose')
+    notify('no open threads')
+  end
+end
+
 local function render_all()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     M.render(vim.api.nvim_win_get_buf(win))
   end
+  refresh_list()
 end
 
 --- Redraw when the thread file changes (Claude replied, another nvim commented).
@@ -343,8 +379,6 @@ function M.reopen()
   end)
 end
 
-local LIST = 'Review threads'
-
 --- The open threads in the quickfix list, or closes it when it shows them.
 function M.list()
   local qf = vim.fn.getqflist({ title = 0, winid = 0 })
@@ -355,19 +389,8 @@ function M.list()
   if not repo then
     return notify('not in a git repository', vim.log.levels.WARN)
   end
-  local items = {}
-  for _, thread in ipairs(store.load(repo).threads) do
-    if not thread.resolved then
-      local at = store.place(repo, thread)
-      local last = thread.comments[#thread.comments]
-      table.insert(items, {
-        filename = repo.root .. '/' .. thread.path,
-        lnum = at.line or 1,
-        text = ('%s%s %s: %s'):format(thread.id, at.line and '' or ' [outdated]', last.author, last.text),
-      })
-    end
-  end
-  vim.fn.setqflist({}, ' ', { title = LIST, items = items })
+  local items = list_items(repo)
+  vim.fn.setqflist({}, ' ', { title = LIST, context = { root = repo.root }, items = items })
   vim.cmd(#items > 0 and 'copen' or 'cclose')
   if #items == 0 then notify('no open threads') end
 end
