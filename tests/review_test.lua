@@ -426,6 +426,25 @@ test('<leader>rr replies, <leader>rx resolves to one line and reopens', function
   eq(store.load(repo).threads[1].resolved, false)
 end)
 
+test('off a thread line, <leader>rx marks resolved threads in its pick', function()
+  local dir = fresh_repo()
+  vim.cmd.edit(dir .. '/notes.md')
+  vim.api.nvim_win_set_cursor(0, { 3, 0 })
+  answer('Which Friday?')
+  review_ui.comment()
+  vim.api.nvim_win_set_cursor(0, { 4, 0 })
+  answer('How long?')
+  review_ui.comment()
+  review_ui.resolve()
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  local offered
+  local select = vim.ui.select
+  vim.ui.select = function(items, opts) offered = vim.tbl_map(opts.format_item, items) end
+  review_ui.resolve()
+  vim.ui.select = select
+  eq(offered, { 't1 line 3: Which Friday?', 't2 line 4 · resolved: How long?' })
+end)
+
 test('an unsaved buffer is not commented on', function()
   local dir, repo = fresh_repo()
   vim.cmd.edit(dir .. '/notes.md')
