@@ -204,7 +204,8 @@ local function pick(prompt, fn, with_resolved)
   vim.ui.select(choices, {
     prompt = prompt,
     format_item = function(one)
-      return ('%s %s: %s'):format(one.thread.id, one.at.line and 'line ' .. one.at.line or 'outdated', one.thread.comments[1].text)
+      local state = one.thread.resolved and ' · resolved' or ''
+      return ('%s %s%s: %s'):format(one.thread.id, one.at.line and 'line ' .. one.at.line or 'outdated', state, one.thread.comments[1].text)
     end,
   }, function(one)
     if one then fn(repo, one.thread) end
