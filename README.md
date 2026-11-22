@@ -49,7 +49,7 @@ In Neovim (`<leader>` is `\` unless you changed it):
 | `<leader>rr` | reply to the thread on this line |
 | `<leader>rx` | resolve the thread on this line, or reopen it |
 | `<leader>rz` | collapse or expand the thread on this line |
-| `<leader>rl` | list open threads in the quickfix window (toggle) |
+| `<leader>rl` | list open threads in the quickfix window (toggle); kept current, closes when none is open |
 | `<leader>rd` | show the diff against HEAD over the whole file (toggle) |
 | click | `[reply]` `[resolve]` `[collapse]` `[expand]` `[reopen]` on a thread's header |
 
