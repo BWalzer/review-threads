@@ -525,6 +525,40 @@ test('an untracked file is all green', function()
   d.enabled = false
 end)
 
+-- nvim shows rows above line 1 only up to the window less line 1, cutting the
+-- rest from the top: an outdated thread must fit, so its header stays.
+local function outdated_tall_thread(edit)
+  local dir = fresh_repo()
+  vim.cmd.edit(dir .. '/notes.md')
+  vim.api.nvim_win_set_cursor(0, { 7, 0 })
+  answer(string.rep('long reply text ', 60))
+  review_ui.comment()
+  write(dir .. '/notes.md', edit(NOTES:gsub('None known.', 'Rewritten.')))
+  vim.cmd('edit!')
+  vim.cmd('resize 8')
+  review_ui.render(0)
+  local rows = virt()[1][4].virt_lines
+  vim.cmd('resize')
+  return rows
+end
+
+test('an outdated thread above line 1 fits the window, header first', function()
+  local rows = outdated_tall_thread(function(text) return text end)
+  eq(#rows, 7, 'window of 8 less line 1')
+  has(rows[1][1][1], 't1')
+  has(rows[1][4][1], '[resolve]')
+  has(rows[#rows][1][1], 'more lines')
+end)
+
+test('red lines above line 1 leave less room for an outdated thread', function()
+  local d = require('review.diff')
+  d.enabled = true
+  local rows = outdated_tall_thread(function(text) return (text:gsub('# Plan', '# Plans')) end)
+  d.enabled = false
+  eq(#rows, 6, 'window of 8 less line 1 less one red line')
+  has(rows[1][4][1], '[resolve]')
+end)
+
 test('<leader>rl toggles the thread list', function()
   local dir = fresh_repo()
   vim.cmd.edit(dir .. '/notes.md')

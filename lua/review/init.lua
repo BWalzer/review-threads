@@ -85,11 +85,11 @@ function M.wrap(text, width)
   return out
 end
 
---- The text width of the window showing `buf` (its first, else the current).
+--- The text width and height of the window showing `buf` (its first, else the current).
 function M.text_width(buf)
   local win = vim.fn.bufwinid(buf)
   local info = vim.fn.getwininfo(win ~= -1 and win or vim.api.nvim_get_current_win())[1]
-  return math.max(20, info.width - info.textoff)
+  return math.max(20, info.width - info.textoff), info.height
 end
 
 function M.render(buf)
@@ -102,8 +102,10 @@ function M.render(buf)
     return
   end
   M.watch(repo)
-  local width = M.text_width(buf)
-  diff.render(buf, repo.root, path, width)
+  local width, height = M.text_width(buf)
+  -- Rows above line 1 are filler, which nvim cuts from the top past the window
+  -- less line 1. Outdated threads share what diff leaves; we cut from the bottom.
+  local room = height - 1 - diff.render(buf, repo.root, path, width)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   for _, one in ipairs(placed(repo, path, lines, true)) do
     local t, at = one.thread, one.at
@@ -143,6 +145,18 @@ function M.render(buf)
         local lead = ('  │ %s: '):format(c.author)
         add(lead, '  │ ' .. string.rep(' ', #c.author + 2), c.text, c.author == 'claude' and 'DiagnosticHint' or 'Comment')
       end
+    end
+    if not at.line then
+      if #virt > room then
+        -- shortcut: once room runs out each later thread still keeps its header and overflows; upgrade: draw headers only when room is gone
+        local keep = math.max(1, room - 1) -- the header always stays
+        local hidden = #virt - keep
+        virt = vim.list_slice(virt, 1, keep)
+        if room > 1 then
+          table.insert(virt, { { ('  │ … %d more lines'):format(hidden), hl } })
+        end
+      end
+      room = room - #virt
     end
     vim.api.nvim_buf_set_extmark(buf, ns, (at.line or 1) - 1, 0, {
       virt_lines = virt,
