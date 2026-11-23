@@ -32,10 +32,11 @@ end
 
 --- Draws the diff of `path` (repo-relative, in `root`) on buffer `buf`, its
 --- removed lines padded to `width` cells so their red runs the window across.
+--- Returns how many red lines it drew above line 1.
 function M.render(buf, root, path, width)
   vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
   if not M.enabled then
-    return
+    return 0
   end
   local count = vim.api.nvim_buf_line_count(buf)
 
@@ -44,9 +45,10 @@ function M.render(buf, root, path, width)
     for row = 0, count - 1 do
       vim.api.nvim_buf_set_extmark(buf, ns, row, 0, { line_hl_group = 'DiffAdd', sign_text = '+', sign_hl_group = 'DiffAdd' })
     end
-    return
+    return 0
   end
 
+  local top = 0
   local _, diff = git(root, { 'diff', '--no-color', '--no-ext-diff', '-U0', 'HEAD', '--', path })
   for _, h in ipairs(M.hunks(diff)) do
     for row = h.new_start, h.new_start + h.new - 1 do
@@ -63,9 +65,14 @@ function M.render(buf, root, path, width)
       -- its new lines. Line 0 means the top of the file.
       local below = h.new == 0 and h.new_start > 0
       local row = below and h.new_start - 1 or math.max(0, h.new_start - 1)
-      vim.api.nvim_buf_set_extmark(buf, ns, math.min(row, count - 1), 0, { virt_lines = virt, virt_lines_above = not below })
+      row = math.min(row, count - 1)
+      vim.api.nvim_buf_set_extmark(buf, ns, row, 0, { virt_lines = virt, virt_lines_above = not below })
+      if row == 0 and not below then
+        top = top + #virt
+      end
     end
   end
+  return top
 end
 
 return M
